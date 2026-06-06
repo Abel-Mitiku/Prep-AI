@@ -3,9 +3,8 @@ import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }, // ✅ params is now a Promise
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  // ✅ Await params to get the id
   const { id: sessionId } = await params;
 
   if (!sessionId) {
@@ -17,7 +16,6 @@ export async function GET(
   console.log(sessionId);
 
   try {
-    // 1. Fetch Session Info
     const { data: session, error: sessionError } = await supabaseAdmin
       .from("interview_sessions")
       .select("*")
@@ -31,21 +29,18 @@ export async function GET(
       );
     }
 
-    // 2. Fetch Summary
     const { data: summary, error: summaryError } = await supabaseAdmin
       .from("interview_summary")
       .select("*")
       .eq("session_id", sessionId)
       .single();
 
-    // 3. Fetch Questions with Feedback
     const { data: questions, error: questionsError } = await supabaseAdmin
       .from("interview_questions")
       .select("*")
       .eq("session_id", sessionId)
       .order("created_at", { ascending: true });
 
-    // Parse strengths/weaknesses from summary text back to arrays for UI
     const parsedSummary = summary
       ? {
           ...summary,

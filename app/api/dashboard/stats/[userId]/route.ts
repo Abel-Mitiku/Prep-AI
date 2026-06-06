@@ -15,7 +15,6 @@ export async function GET(
   }
 
   try {
-    // 1. Total completed interviews
     const { count: totalInterviews, error: countError } = await supabaseAdmin
       .from("interview_sessions")
       .select("*", { count: "exact", head: true })
@@ -27,7 +26,6 @@ export async function GET(
       throw countError;
     }
 
-    // ✅ FIX: Step 1 - Get session IDs first
     const { data: sessions, error: sessionsError } = await supabaseAdmin
       .from("interview_sessions")
       .select("id")
@@ -39,21 +37,17 @@ export async function GET(
       throw sessionsError;
     }
 
-    // Extract IDs into array
     const sessionIds = sessions?.map((s) => s.id) || [];
 
-    // ✅ FIX: Step 2 - Use .in() with the array of IDs
     const { data: scores, error: scoresError } = await supabaseAdmin
       .from("interview_summary")
       .select("final_score")
-      .in("session_id", sessionIds); // ✅ Now passing array of UUIDs
+      .in("session_id", sessionIds);
 
     if (scoresError) {
       console.error("Error fetching scores:", scoresError);
-      // Continue anyway - scores are optional
     }
 
-    // 3. Total hours practiced - CALCULATE FROM TIMESTAMPS
     const { data: sessionTimestamps, error: timestampError } =
       await supabaseAdmin
         .from("interview_sessions")
@@ -66,7 +60,6 @@ export async function GET(
       console.error("Error fetching timestamps:", timestampError);
     }
 
-    // Calculate total minutes from timestamps
     const totalMinutes =
       sessionTimestamps?.reduce((sum, session) => {
         if (session.started_at && session.ended_at) {
@@ -82,7 +75,6 @@ export async function GET(
 
     const hoursPracticed = parseFloat((totalMinutes / 60).toFixed(1));
 
-    // Calculate score stats
     const validScores = scores
       ?.map((s) => s.final_score)
       .filter((s): s is number => typeof s === "number" && s >= 0 && s <= 100);

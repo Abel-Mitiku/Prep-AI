@@ -1,9 +1,12 @@
+export const dynamic = "force-dynamic";
+
+import { Suspense } from "react";
 import AuthCallbackPage from "./components/auth";
 
 export default function Page() {
   return (
-    <div>
+    <Suspense>
       <AuthCallbackPage />
-    </div>
+    </Suspense>
   );
 }

@@ -14,12 +14,10 @@ import {
 } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
-// Reusing the cinematic particle background
 function ParticleField() {
   const canvasRef = useState<HTMLCanvasElement | null>(null);
-  // (Assuming you have this from the login page, or just copy the ParticleField component from your login page here)
+
   return null;
-  // NOTE: Copy the exact ParticleField component from your LoginPage here to keep the background!
 }
 
 export default function ForgotPasswordPage() {
@@ -38,7 +36,6 @@ export default function ForgotPasswordPage() {
     setError("");
 
     try {
-      // IMPORTANT: Change http://localhost:3000 to your actual production URL when deploying!
       const redirectTo = `${window.location.origin}/auth/callback`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -159,7 +156,7 @@ export default function ForgotPasswordPage() {
         padding: 20,
       }}
     >
-      {/* Ambient blobs */}
+      {}
       <div
         style={{
           position: "fixed",

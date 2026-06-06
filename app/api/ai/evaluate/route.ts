@@ -9,7 +9,6 @@ import {
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
-// 🔍 Validation function
 function validateEvaluateRequest(
   body: unknown,
 ):
@@ -71,7 +70,6 @@ function validateEvaluateRequest(
   };
 }
 
-// 🤖 AI Evaluation with Groq
 async function evaluateAnswerWithGroq(params: {
   questionText: string;
   answer: string;
@@ -285,14 +283,12 @@ FINAL RULES:
   }
 }
 
-// 🔢 Helper: Clamp score to 0-100 range
 function clampScore(value: unknown): number {
   const num = typeof value === "number" ? value : parseInt(String(value), 10);
   if (isNaN(num)) return 30;
   return Math.max(0, Math.min(100, Math.round(num)));
 }
 
-// 💾 Save evaluation to database
 async function saveEvaluationToDB(
   sessionId: string,
   questionId: string,
@@ -309,9 +305,7 @@ async function saveEvaluationToDB(
       communication_score: evaluation.communication_score,
       confidence_score: evaluation.confidence_score,
       feedback: evaluation.feedback,
-      areas_to_improve: evaluation.areas_to_improve, // ✅ text[] column
-      // Optional: strengths if you added that column
-      // strengths: evaluation.strengths,
+      areas_to_improve: evaluation.areas_to_improve,
     });
 
     if (error) {
@@ -325,7 +319,6 @@ async function saveEvaluationToDB(
   }
 }
 
-// 🚀 POST Handler
 export async function POST(
   req: Request,
 ): Promise<NextResponse<EvaluateResponse>> {
@@ -365,7 +358,6 @@ export async function POST(
     console.warn("⚠️ questionText not provided; using placeholder");
   }
 
-  // 🧠 Evaluate answer with AI
   let evaluation: EvaluationResult;
   try {
     evaluation = await evaluateAnswerWithGroq({
@@ -386,7 +378,6 @@ export async function POST(
     );
   }
 
-  // 💾 Save to database
   const saved = await saveEvaluationToDB(
     sessionId,
     questionId,
@@ -395,19 +386,17 @@ export async function POST(
     evaluation,
   );
 
-  // 📤 Return response
-  // ✅ Note: Focus/anti-cheating penalties are applied at SESSION END, not per-question
   return NextResponse.json(
     {
       success: true,
-      // Return evaluation fields at top level for easy frontend access
+
       technical_score: evaluation.technical_score,
       communication_score: evaluation.communication_score,
       confidence_score: evaluation.confidence_score,
       feedback: evaluation.feedback,
       strengths: evaluation.strengths,
       areas_to_improve: evaluation.areas_to_improve,
-      // Also keep nested for backward compatibility
+
       evaluation,
       saved,
     },

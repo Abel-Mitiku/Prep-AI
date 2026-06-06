@@ -45,7 +45,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1️⃣ Download & Parse PDF
     const { data: fileData, error: downloadError } = await supabaseAdmin.storage
       .from("resumes")
       .download(filePath);
@@ -65,7 +64,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2️⃣ AI Analysis
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [
@@ -106,7 +104,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ 3️⃣ Return config to frontend — DON'T call interview API here
     return NextResponse.json({
       success: true,
       config: {
@@ -114,7 +111,7 @@ export async function POST(req: Request) {
         difficulty: config.difficulty,
         type: config.type || "technical",
         focusAreas: config.focusAreas,
-        userId, // Pass userId so frontend can include it
+        userId,
       },
     });
   } catch (err: any) {

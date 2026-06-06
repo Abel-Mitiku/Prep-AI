@@ -273,7 +273,7 @@ export default function ResetPasswordPage() {
           onSubmit={handleSubmit}
           style={{ display: "flex", flexDirection: "column", gap: 16 }}
         >
-          {/* New Password */}
+          {}
           <div>
             <label
               style={{
@@ -330,7 +330,7 @@ export default function ResetPasswordPage() {
             </div>
           </div>
 
-          {/* Confirm Password */}
+          {}
           <div>
             <label
               style={{

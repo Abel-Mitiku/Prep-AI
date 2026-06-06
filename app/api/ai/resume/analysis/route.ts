@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
-// 🔑 Initialize Groq (reuse your API key)
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
 export async function POST(req: Request) {
@@ -15,12 +14,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🤖 Prompt to extract interview configuration
     const prompt = `
       You are an expert technical recruiter. Analyze the following resume text and extract the interview configuration.
       
       RESUME TEXT:
-      "${text.substring(0, 5000)}" // Limit context window
+      "${text.substring(0, 5000)}" 
 
       Return ONLY valid JSON with this schema:
       {
@@ -33,7 +31,7 @@ export async function POST(req: Request) {
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.1-8b-instant", // Fast model for extraction
+      model: "llama-3.1-8b-instant",
       response_format: { type: "json_object" },
       temperature: 0.1,
     });
@@ -41,7 +39,6 @@ export async function POST(req: Request) {
     const content = completion.choices[0]?.message?.content || "{}";
     const config = JSON.parse(content);
 
-    // ✅ Validate the extracted data
     if (!config.role || !config.difficulty) {
       throw new Error("AI could not extract valid role or difficulty");
     }
