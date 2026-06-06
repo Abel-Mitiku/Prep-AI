@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabaseClient";
 import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
 
-export default function AuthCallbackPage() {
+function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "error">("loading");
@@ -42,7 +42,6 @@ export default function AuthCallbackPage() {
         fontFamily: "'DM Sans', system-ui",
       }}
     >
-      {}
       <div
         style={{
           position: "fixed",
@@ -174,5 +173,31 @@ export default function AuthCallbackPage() {
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            minHeight: "100vh",
+            background: "#03050f",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Loader2
+            size={32}
+            color="#a78bfa"
+            style={{ animation: "spin 1s linear infinite" }}
+          />
+        </div>
+      }
+    >
+      <CallbackContent />
+    </Suspense>
   );
 }
