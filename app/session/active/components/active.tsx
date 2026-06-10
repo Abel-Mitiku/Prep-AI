@@ -39,8 +39,7 @@ declare global {
 
 function AISpeakingOrb({ active }: { active: boolean }) {
   return (
-    <div className="relative flex items-center justify-center w-16 h-16">
-      {}
+    <div className="relative flex items-center justify-center w-12 h-12 md:w-16 md:h-16">
       {active && (
         <>
           <span
@@ -57,16 +56,15 @@ function AISpeakingOrb({ active }: { active: boolean }) {
           />
         </>
       )}
-      {}
       <div
-        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
+        className={`w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
           active
             ? "bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/50 scale-110"
             : "bg-slate-700 border border-slate-600"
         }`}
       >
         <Volume2
-          className={`w-5 h-5 transition-colors ${active ? "text-white" : "text-slate-400"}`}
+          className={`w-4 h-4 md:w-5 md:h-5 transition-colors ${active ? "text-white" : "text-slate-400"}`}
         />
       </div>
     </div>
@@ -78,7 +76,7 @@ function ListeningOrb({ active }: { active: boolean }) {
     0.5, 0.8, 1.0, 0.65, 0.9, 0.55, 1.0, 0.75, 0.85, 0.6, 0.95, 0.7,
   ];
   return (
-    <div className="relative flex items-center justify-center w-16 h-16">
+    <div className="relative flex items-center justify-center w-12 h-12 md:w-16 md:h-16">
       {active && (
         <>
           <span
@@ -92,7 +90,7 @@ function ListeningOrb({ active }: { active: boolean }) {
         </>
       )}
       <div
-        className={`w-12 h-12 rounded-full flex items-center justify-center gap-[2px] transition-all duration-500 ${
+        className={`w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center gap-[2px] transition-all duration-500 ${
           active
             ? "bg-gradient-to-br from-cyan-500 to-teal-600 shadow-lg shadow-cyan-500/50 scale-110"
             : "bg-slate-700 border border-slate-600"
@@ -105,13 +103,13 @@ function ListeningOrb({ active }: { active: boolean }) {
               className="rounded-full bg-white"
               style={{
                 width: 2,
-                height: `${h * 20}px`,
+                height: `${h * 16}px`,
                 animation: `waveBar 0.8s ease-in-out ${(i * 0.07).toFixed(2)}s infinite alternate`,
               }}
             />
           ))
         ) : (
-          <Mic className="w-5 h-5 text-slate-400" />
+          <Mic className="w-4 h-4 md:w-5 md:h-5 text-slate-400" />
         )}
       </div>
       <style>{`
@@ -134,7 +132,7 @@ function VoiceWaveform({ active }: { active: boolean }) {
           style={{
             width: 3,
             backgroundColor: active ? "#06b6d4" : "#334155",
-            height: active ? `${h * 22}px` : "4px",
+            height: active ? `${h * 18}px` : "4px",
             animation: active
               ? `waveBar 0.9s ease-in-out ${(i * 0.08).toFixed(2)}s infinite alternate`
               : "none",
@@ -156,7 +154,6 @@ function EntryWarningModal({ onAccept }: { onAccept: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[100] bg-slate-950 flex items-center justify-center p-4">
-      {}
       <div
         className="absolute inset-0 opacity-10"
         style={{
@@ -168,7 +165,6 @@ function EntryWarningModal({ onAccept }: { onAccept: () => void }) {
       <div className="absolute inset-0 bg-gradient-radial from-violet-900/20 via-transparent to-transparent" />
 
       <div className="relative max-w-lg w-full">
-        {}
         <div className="flex justify-center mb-8">
           <div className="relative">
             <span className="absolute inset-0 rounded-full bg-amber-500/20 animate-ping" />
@@ -271,7 +267,6 @@ function FocusWarningOverlay({
               : "0 0 40px rgba(217,119,6,0.3)",
         }}
       >
-        {}
         <div
           className="h-1 w-full animate-pulse"
           style={{
@@ -363,8 +358,13 @@ export default function ActiveSessionPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isFetchingQuestions, setIsFetchingQuestions] = useState(true);
 
+  const [webcamPos, setWebcamPos] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -395,6 +395,43 @@ export default function ActiveSessionPage() {
   useEffect(() => {
     if (!showWarning) setFocusWarningDismissed(false);
   }, [showWarning]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      let clientX = 0,
+        clientY = 0;
+      if (e instanceof MouseEvent) {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      } else if (e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+      setWebcamPos({
+        x: clientX - dragOffsetRef.current.x,
+        y: clientY - dragOffsetRef.current.y,
+      });
+    };
+
+    const handleEnd = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleEnd);
+    window.addEventListener("touchmove", handleMove, { passive: false });
+    window.addEventListener("touchend", handleEnd);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleEnd);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleEnd);
+    };
+  }, [isDragging]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -557,12 +594,20 @@ export default function ActiveSessionPage() {
   }, [searchParams, modeParam]);
 
   useEffect(() => {
-    let mounted = true;
+    if (!showWebcam) {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+      return;
+    }
 
-    const setupWebcam = async () => {
-      if (!showWebcam) return;
+    let mounted = true;
+    let currentStream: MediaStream | null = null;
+
+    const getStream = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        currentStream = await navigator.mediaDevices.getUserMedia({
           video: {
             width: { ideal: 320 },
             height: { ideal: 240 },
@@ -570,22 +615,21 @@ export default function ActiveSessionPage() {
           },
           audio: false,
         });
+
         if (!mounted) {
-          stream.getTracks().forEach((t) => t.stop());
+          currentStream.getTracks().forEach((t) => t.stop());
           return;
         }
-        streamRef.current = stream;
+
+        streamRef.current = currentStream;
+        setWebcamError(null);
 
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-
-          await new Promise<void>((resolve) => {
-            if (!videoRef.current) return resolve();
-            videoRef.current.onloadedmetadata = () => resolve();
+          videoRef.current.srcObject = currentStream;
+          videoRef.current.play().catch((err) => {
+            console.warn("Video play failed:", err);
           });
-          if (mounted && videoRef.current) await videoRef.current.play();
         }
-        setWebcamError(null);
       } catch (err: any) {
         if (!mounted) return;
         setWebcamError(
@@ -598,14 +642,26 @@ export default function ActiveSessionPage() {
       }
     };
 
-    setupWebcam();
+    getStream();
+
     return () => {
       mounted = false;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      if (currentStream) {
+        currentStream.getTracks().forEach((t) => t.stop());
+      }
       streamRef.current = null;
-      if (videoRef.current) videoRef.current.srcObject = null;
     };
   }, [showWebcam]);
+
+  const handleVideoRef = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node && streamRef.current) {
+      node.srcObject = streamRef.current;
+      node.play().catch((err) => {
+        console.warn("Video play failed on ref attach:", err);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (status !== "active" || timeLeft <= 0) return;
@@ -944,7 +1000,6 @@ export default function ActiveSessionPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
-      {}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -953,7 +1008,6 @@ export default function ActiveSessionPage() {
         }}
       />
 
-      {}
       {showWarning && !focusWarningDismissed && (
         <FocusWarningOverlay
           level={suspicious ? "critical" : "warn"}
@@ -961,29 +1015,28 @@ export default function ActiveSessionPage() {
         />
       )}
 
-      {}
       <header
-        className="sticky top-0 z-20 border-b px-4 md:px-6 py-3"
+        className="sticky top-0 z-20 border-b px-3 py-2 md:px-6 md:py-3"
         style={{
           background: "rgba(2,6,23,0.85)",
           backdropFilter: "blur(16px)",
           borderColor: "rgba(148,163,184,0.08)",
         }}
       >
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <button
               title="dashboard"
               onClick={() => router.push("/dashboard")}
-              className="text-slate-500 hover:text-slate-300 transition p-1 rounded-lg hover:bg-slate-800"
+              className="text-slate-500 hover:text-slate-300 transition p-1 rounded-lg hover:bg-slate-800 flex-shrink-0"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="font-semibold text-slate-100 capitalize tracking-tight">
+            <div className="min-w-0">
+              <h1 className="font-semibold text-slate-100 capitalize tracking-tight text-sm md:text-base truncate">
                 {typeParam.replace("_", " ")} Interview
               </h1>
-              <p className="text-xs text-slate-500">
+              <p className="text-[10px] md:text-xs text-slate-500 truncate">
                 Question{" "}
                 <span className="text-violet-400 font-mono font-semibold">
                   {currentQIndex + 1}
@@ -993,10 +1046,9 @@ export default function ActiveSessionPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {}
+          <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
             {cheatCount > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
                 <Eye className="w-3 h-3" />
                 <span>
                   {cheatCount} alert{cheatCount > 1 ? "s" : ""}
@@ -1004,9 +1056,8 @@ export default function ActiveSessionPage() {
               </div>
             )}
 
-            {}
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border font-mono font-semibold text-sm transition-all ${
+              className={`flex items-center gap-1.5 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg border font-mono font-semibold text-xs md:text-sm transition-all ${
                 timeUrgent
                   ? "bg-red-500/10 border-red-500/30 text-red-400 animate-pulse"
                   : timeWarning
@@ -1014,33 +1065,32 @@ export default function ActiveSessionPage() {
                     : "bg-slate-800 border-slate-700 text-slate-300"
               }`}
             >
-              <Clock className="w-3.5 h-3.5" />
+              <Clock className="w-3 h-3 md:w-3.5 md:h-3.5" />
               {formatTime(timeLeft)}
             </div>
 
             <button
               onClick={handlePauseResume}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+              className="p-1.5 md:p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
               title={status === "active" ? "Pause" : "Resume"}
             >
               {status === "active" ? (
-                <Pause className="w-4 h-4" />
+                <Pause className="w-3.5 h-3.5 md:w-4 md:h-4" />
               ) : (
-                <Play className="w-4 h-4" />
+                <Play className="w-3.5 h-3.5 md:w-4 md:h-4" />
               )}
             </button>
             <button
               onClick={() => setShowEndConfirm(true)}
-              className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition"
+              className="p-1.5 md:p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition"
               title="End Session"
             >
-              <Flag className="w-4 h-4" />
+              <Flag className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </button>
           </div>
         </div>
       </header>
 
-      {}
       <div className="w-full h-[2px] bg-slate-800 relative z-10">
         <div
           className="h-full transition-all duration-700"
@@ -1052,15 +1102,35 @@ export default function ActiveSessionPage() {
         />
       </div>
 
-      {}
       {showWebcam && (
         <div
-          className="fixed top-20 right-4 md:right-8 z-30 w-36 h-28 md:w-44 md:h-32 rounded-2xl overflow-hidden shadow-2xl border group"
+          className={`fixed top-20 right-4 z-30 w-28 h-20 md:w-44 md:h-32 rounded-2xl overflow-hidden shadow-2xl border group ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
           style={{
             background: "rgba(2,6,23,0.9)",
             borderColor: "rgba(148,163,184,0.15)",
             boxShadow:
               "0 0 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.1)",
+            transform: `translate(${webcamPos.x}px, ${webcamPos.y}px)`,
+            touchAction: "none",
+            transition: isDragging ? "none" : "transform 0.2s ease-out",
+          }}
+          onMouseDown={(e) => {
+            if ((e.target as HTMLElement).closest("button")) return;
+            e.preventDefault();
+            setIsDragging(true);
+            dragOffsetRef.current = {
+              x: e.clientX - webcamPos.x,
+              y: e.clientY - webcamPos.y,
+            };
+          }}
+          onTouchStart={(e) => {
+            if ((e.target as HTMLElement).closest("button")) return;
+            const touch = e.touches[0];
+            setIsDragging(true);
+            dragOffsetRef.current = {
+              x: touch.clientX - webcamPos.x,
+              y: touch.clientY - webcamPos.y,
+            };
           }}
         >
           {webcamError ? (
@@ -1079,14 +1149,13 @@ export default function ActiveSessionPage() {
           ) : (
             <div className="w-full h-full relative">
               <video
-                ref={videoRef}
+                ref={handleVideoRef}
                 autoPlay
                 playsInline
                 muted
                 className="w-full h-full object-cover transform scale-x-[-1]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent pointer-events-none" />
-              {}
               <div className="absolute top-2 left-2 flex items-center gap-1.5">
                 <span
                   className="w-2 h-2 bg-red-500 rounded-full animate-pulse"
@@ -1098,10 +1167,10 @@ export default function ActiveSessionPage() {
               </div>
               <button
                 onClick={() => setShowWebcam(false)}
-                className="absolute bottom-2 right-2 p-1 bg-slate-900/80 hover:bg-slate-800 rounded-md opacity-0 group-hover:opacity-100 transition"
+                className="absolute bottom-2 right-2 p-1.5 md:p-1 bg-slate-900/80 hover:bg-slate-800 rounded-md opacity-0 group-hover:opacity-100 transition"
                 title="Hide webcam"
               >
-                <VideoOff className="w-3 h-3 text-slate-300" />
+                <VideoOff className="w-3.5 h-3.5 md:w-3 md:h-3 text-slate-300" />
               </button>
             </div>
           )}
@@ -1114,25 +1183,22 @@ export default function ActiveSessionPage() {
             setShowWebcam(true);
             setWebcamError(null);
           }}
-          className="fixed top-20 right-4 md:right-8 z-30 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl shadow-lg transition flex items-center gap-2 text-xs"
+          className="fixed top-20 right-4 z-30 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl shadow-lg transition flex items-center gap-2 text-xs"
         >
           <Video className="w-3.5 h-3.5" /> Camera
         </button>
       )}
 
-      {}
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 md:px-6 py-6 flex flex-col gap-4 relative z-10">
-        {}
+      <main className="flex-1 max-w-4xl mx-auto w-full px-3 py-4 md:px-6 md:py-6 flex flex-col gap-3 md:gap-4 relative z-10 pb-24">
         <div
-          className="rounded-2xl border p-6"
+          className="rounded-2xl border p-4 md:p-6"
           style={{
             background: "rgba(15,23,42,0.8)",
             borderColor: "rgba(148,163,184,0.1)",
             backdropFilter: "blur(8px)",
           }}
         >
-          <div className="flex items-start gap-4">
-            {}
+          <div className="flex items-start gap-3 md:gap-4">
             <div className="flex-shrink-0 flex flex-col items-center gap-2">
               <AISpeakingOrb active={isSpeaking} />
               {isSpeaking && (
@@ -1142,9 +1208,8 @@ export default function ActiveSessionPage() {
               )}
             </div>
 
-            {}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-2 md:mb-3">
                 <span className="text-xs text-slate-500 font-mono">
                   Q{currentQIndex + 1}
                 </span>
@@ -1153,12 +1218,12 @@ export default function ActiveSessionPage() {
                   {typeParam.replace("_", " ")}
                 </span>
               </div>
-              <h2 className="text-lg font-semibold text-slate-100 leading-snug mb-3">
+              <h2 className="text-base md:text-lg font-semibold text-slate-100 leading-snug mb-2 md:mb-3">
                 {currentQ?.text || "Preparing next question…"}
               </h2>
               {currentQ?.hint && (
                 <div
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-slate-400"
+                  className="inline-flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs text-slate-400"
                   style={{
                     background: "rgba(148,163,184,0.06)",
                     border: "1px solid rgba(148,163,184,0.1)",
@@ -1170,11 +1235,10 @@ export default function ActiveSessionPage() {
               )}
             </div>
 
-            {}
             <button
               onClick={toggleTTS}
               disabled={!currentQ?.text}
-              className={`p-2.5 rounded-xl transition flex-shrink-0 border ${
+              className={`p-2 md:p-2.5 rounded-xl transition flex-shrink-0 border ${
                 isSpeaking
                   ? "border-violet-500/40 bg-violet-500/10 text-violet-400"
                   : "border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed"
@@ -1190,7 +1254,6 @@ export default function ActiveSessionPage() {
           </div>
         </div>
 
-        {}
         <div
           className="rounded-2xl border flex-1 flex flex-col overflow-hidden"
           style={{
@@ -1206,13 +1269,13 @@ export default function ActiveSessionPage() {
           }}
         >
           <div
-            className="flex items-center justify-between px-5 pt-4 pb-3 border-b"
+            className="flex items-center justify-between px-4 pt-3 pb-2 md:px-5 md:pt-4 md:pb-3 border-b"
             style={{ borderColor: "rgba(148,163,184,0.08)" }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
               <ListeningOrb active={isListening} />
-              <div>
-                <h3 className="text-sm font-semibold text-slate-200">
+              <div className="min-w-0">
+                <h3 className="text-xs md:text-sm font-semibold text-slate-200 truncate">
                   {isListening
                     ? "Listening to you…"
                     : isSpeaking
@@ -1220,21 +1283,21 @@ export default function ActiveSessionPage() {
                       : "Your Response"}
                 </h3>
                 {isListening && (
-                  <p className="text-xs text-cyan-500 mt-0.5">
+                  <p className="text-[10px] md:text-xs text-cyan-500 mt-0.5 truncate">
                     Speak clearly — transcribing in real time
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {speechError && (
-                <span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20">
+                <span className="text-[10px] md:text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20">
                   {speechError}
                 </span>
               )}
               {modeParam === "voice" && isRecording && (
-                <span className="text-xs font-mono text-red-400 flex items-center gap-2 px-3 py-1 rounded-lg bg-red-500/10 border border-red-500/20 animate-pulse">
+                <span className="text-[10px] md:text-xs font-mono text-red-400 flex items-center gap-2 px-2 md:px-3 py-1 rounded-lg bg-red-500/10 border border-red-500/20 animate-pulse">
                   <span
                     className="w-2 h-2 bg-red-500 rounded-full"
                     style={{ boxShadow: "0 0 6px rgba(239,68,68,0.8)" }}
@@ -1245,7 +1308,7 @@ export default function ActiveSessionPage() {
             </div>
           </div>
 
-          <div className="p-5 flex-1 flex flex-col">
+          <div className="p-4 md:p-5 flex-1 flex flex-col">
             {modeParam === "text" ? (
               <div className="relative flex-1">
                 <textarea
@@ -1253,11 +1316,11 @@ export default function ActiveSessionPage() {
                   value={currentInput}
                   onChange={handleInputChange}
                   placeholder="Type your answer here… Be specific, structured, and concise."
-                  className="flex-1 w-full h-full p-4 pr-14 rounded-xl resize-none focus:outline-none text-slate-200 placeholder-slate-600 font-mono text-sm leading-relaxed"
+                  className="flex-1 w-full h-full p-3 md:p-4 pr-12 md:pr-14 rounded-xl resize-none focus:outline-none text-slate-200 placeholder-slate-600 font-mono text-xs md:text-sm leading-relaxed"
                   style={{
                     background: "rgba(2,6,23,0.5)",
                     border: "1px solid rgba(148,163,184,0.08)",
-                    minHeight: "160px",
+                    minHeight: "120px",
                   }}
                   rows={6}
                 />
@@ -1265,7 +1328,7 @@ export default function ActiveSessionPage() {
                   <button
                     onClick={toggleSpeechInput}
                     disabled={aiIsThinking}
-                    className={`absolute bottom-4 right-4 p-2.5 rounded-xl transition border ${
+                    className={`absolute bottom-3 right-3 md:bottom-4 md:right-4 p-2 md:p-2.5 rounded-xl transition border ${
                       isListening
                         ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-400 shadow-lg"
                         : "bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300 hover:border-slate-600"
@@ -1282,7 +1345,7 @@ export default function ActiveSessionPage() {
               </div>
             ) : (
               <div
-                className="flex-1 flex flex-col items-center justify-center rounded-xl min-h-[180px] border-2 border-dashed transition-all duration-300"
+                className="flex-1 flex flex-col items-center justify-center rounded-xl min-h-[140px] md:min-h-[180px] border-2 border-dashed transition-all duration-300"
                 style={{
                   borderColor: isRecording
                     ? "rgba(6,182,212,0.4)"
@@ -1300,7 +1363,7 @@ export default function ActiveSessionPage() {
                     </p>
                     <button
                       onClick={toggleRecording}
-                      className="px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 mx-auto transition"
+                      className="px-4 py-2 md:px-5 md:py-2.5 rounded-xl text-xs md:text-sm font-medium flex items-center gap-2 mx-auto transition"
                       style={{
                         background: "rgba(239,68,68,0.15)",
                         border: "1px solid rgba(239,68,68,0.3)",
@@ -1313,20 +1376,20 @@ export default function ActiveSessionPage() {
                 ) : (
                   <div className="text-center space-y-4">
                     <div
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
+                      className="w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mx-auto"
                       style={{
                         background: "rgba(124,58,237,0.1)",
                         border: "1px solid rgba(124,58,237,0.2)",
                       }}
                     >
-                      <Mic className="w-7 h-7 text-violet-400" />
+                      <Mic className="w-6 h-6 md:w-7 md:h-7 text-violet-400" />
                     </div>
-                    <p className="text-slate-400 text-sm">
+                    <p className="text-slate-400 text-xs md:text-sm">
                       Tap to record your voice response
                     </p>
                     <button
                       onClick={toggleRecording}
-                      className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+                      className="px-4 py-2 md:px-5 md:py-2.5 rounded-xl text-xs md:text-sm font-semibold text-white transition"
                       style={{
                         background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
                         boxShadow: "0 0 20px rgba(124,58,237,0.3)",
@@ -1339,30 +1402,29 @@ export default function ActiveSessionPage() {
               </div>
             )}
 
-            {}
             {modeParam === "text" && speechRecognitionRef.current && (
               <div
                 className={`mt-3 flex items-center gap-3 transition-opacity duration-300 ${isListening ? "opacity-100" : "opacity-0 pointer-events-none"}`}
               >
                 <VoiceWaveform active={isListening} />
-                <span className="text-xs text-cyan-500 font-medium">
+                <span className="text-[10px] md:text-xs text-cyan-500 font-medium">
                   Speaking… click the mic or type to stop
                 </span>
               </div>
             )}
           </div>
 
-          {}
           <div
-            className="flex items-center justify-between px-5 py-4 border-t"
+            className="flex items-center justify-between px-4 py-3 md:px-5 md:py-4 border-t"
             style={{ borderColor: "rgba(148,163,184,0.08)" }}
           >
             <button
               onClick={handleSkip}
               disabled={aiIsThinking}
-              className="px-4 py-2 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded-xl transition flex items-center gap-2 text-sm font-medium disabled:opacity-40"
+              className="px-3 py-2 md:px-4 md:py-2 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded-xl transition flex items-center gap-1.5 md:gap-2 text-xs md:text-sm font-medium disabled:opacity-40"
             >
-              <SkipForward className="w-4 h-4" /> Skip
+              <SkipForward className="w-3.5 h-3.5 md:w-4 md:h-4" />{" "}
+              <span className="hidden sm:inline">Skip</span>
             </button>
 
             <button
@@ -1372,7 +1434,7 @@ export default function ActiveSessionPage() {
                 aiIsThinking ||
                 !currentQ
               }
-              className="px-6 py-2.5 rounded-xl font-semibold text-white flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-4 py-2 md:px-6 md:py-2.5 rounded-xl font-semibold text-white flex items-center gap-1.5 md:gap-2 text-xs md:text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background: aiIsThinking
                   ? "rgba(124,58,237,0.3)"
@@ -1384,13 +1446,13 @@ export default function ActiveSessionPage() {
             >
               {aiIsThinking ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" />
                   <span>AI evaluating…</span>
                 </>
               ) : (
                 <>
-                  <Send className="w-4 h-4" />
-                  <span>Submit Answer</span>
+                  <Send className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  <span>Submit</span>
                 </>
               )}
             </button>
@@ -1398,7 +1460,6 @@ export default function ActiveSessionPage() {
         </div>
       </main>
 
-      {}
       {showEndConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"

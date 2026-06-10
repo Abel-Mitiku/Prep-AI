@@ -109,7 +109,7 @@ function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
         textAnchor="middle"
         style={{
           fill: "#fff",
-          fontSize: 13,
+          fontSize: size > 50 ? 13 : 11,
           fontWeight: 700,
           transform: "rotate(90deg)",
           transformOrigin: "50% 50%",
@@ -189,6 +189,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function Dashboard() {
+  const [isMobile, setIsMobile] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -209,6 +210,13 @@ export function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     const test = async () => {
@@ -489,7 +497,14 @@ export function Dashboard() {
           >
             Track progress, practice with AI, land your dream role.
           </p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              justifyContent: "center",
+              flexWrap: "wrap",
+            }}
+          >
             <button
               onClick={() => router.push("/auth/login")}
               style={{
@@ -612,142 +627,156 @@ export function Dashboard() {
           zIndex: 1,
           maxWidth: 1280,
           margin: "0 auto",
-          padding: "0 24px 60px",
+          padding: isMobile ? "0 16px 60px" : "0 24px 60px",
         }}
       >
         <nav
           style={{
             display: "flex",
-            alignItems: "center",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : "center",
             justifyContent: "space-between",
-            padding: "24px 0 32px",
+            padding: "20px 0 24px",
             borderBottom: "1px solid rgba(255,255,255,0.04)",
-            marginBottom: 40,
+            marginBottom: 32,
+            gap: 16,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 10,
-                background: "linear-gradient(135deg,#7c3aed,#06b6d4)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Brain size={17} color="#fff" />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: "linear-gradient(135deg,#7c3aed,#06b6d4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Brain size={17} color="#fff" />
+              </div>
+              <span
+                style={{
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 16,
+                  letterSpacing: "-0.3px",
+                }}
+              >
+                PrepAI
+              </span>
             </div>
-            <span
-              style={{
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: 16,
-                letterSpacing: "-0.3px",
-              }}
-            >
-              PrepAI
-            </span>
+            {isMobile && (
+              <button
+                title="log-out"
+                onClick={handleLogout}
+                style={{
+                  padding: 8,
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#cbd5e1",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <LogOut size={16} />
+              </button>
+            )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
             <button
               onClick={() => router.push("/dashboard/resume/upload")}
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 8,
-                padding: "10px 20px",
+                padding: isMobile ? "9px 12px" : "10px 20px",
                 borderRadius: 12,
                 background: "rgba(6,182,212,0.1)",
                 border: "1px solid rgba(6,182,212,0.3)",
                 color: "#06b6d4",
                 fontWeight: 600,
-                fontSize: 14,
+                fontSize: isMobile ? 12 : 14,
                 cursor: "pointer",
-                letterSpacing: "0.01em",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background =
-                  "rgba(6,182,212,0.15)";
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  "rgba(6,182,212,0.5)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background =
-                  "rgba(6,182,212,0.1)";
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  "rgba(6,182,212,0.3)";
+                flex: isMobile ? 1 : undefined,
               }}
             >
-              <Upload size={15} /> Upload Resume
+              <Upload size={15} /> {!isMobile && "Upload Resume"}
             </button>
             <button
               onClick={() => router.push("/session/new")}
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 8,
-                padding: "10px 20px",
+                padding: isMobile ? "9px 12px" : "10px 20px",
                 borderRadius: 12,
                 background: "linear-gradient(135deg,#7c3aed,#4f46e5)",
                 border: "none",
                 color: "#fff",
                 fontWeight: 600,
-                fontSize: 14,
+                fontSize: isMobile ? 12 : 14,
                 cursor: "pointer",
-                letterSpacing: "0.01em",
+                flex: isMobile ? 1 : undefined,
                 boxShadow:
                   "0 0 32px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
               }}
             >
               <Zap size={15} /> New Session
             </button>
-            <button
-              onClick={handleLogout}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 20px",
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#cbd5e1",
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: "pointer",
-                letterSpacing: "0.01em",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background =
-                  "rgba(239,68,68,0.1)";
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  "rgba(239,68,68,0.3)";
-                (e.currentTarget as HTMLElement).style.color = "#f87171";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background =
-                  "rgba(255,255,255,0.05)";
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  "rgba(255,255,255,0.1)";
-                (e.currentTarget as HTMLElement).style.color = "#cbd5e1";
-              }}
-            >
-              <LogOut size={15} /> Logout
-            </button>
+            {!isMobile && (
+              <button
+                onClick={handleLogout}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  padding: "10px 20px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#cbd5e1",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                <LogOut size={15} /> Logout
+              </button>
+            )}
           </div>
         </nav>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr auto",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
             gap: 24,
             marginBottom: 32,
-            alignItems: "start",
+            alignItems: "center",
+            textAlign: isMobile ? "center" : "left",
           }}
         >
           <div>
@@ -757,6 +786,7 @@ export function Dashboard() {
                 alignItems: "center",
                 gap: 8,
                 marginBottom: 12,
+                justifyContent: isMobile ? "center" : "flex-start",
               }}
             >
               <span
@@ -784,7 +814,7 @@ export function Dashboard() {
             <h1
               style={{
                 color: "#fff",
-                fontSize: 38,
+                fontSize: isMobile ? 28 : 38,
                 fontWeight: 700,
                 margin: "0 0 10px",
                 letterSpacing: "-1px",
@@ -830,6 +860,7 @@ export function Dashboard() {
                 borderRadius: 20,
                 background: "rgba(255,255,255,0.02)",
                 border: "1px solid rgba(255,255,255,0.06)",
+                justifySelf: isMobile ? "center" : "end",
               }}
             >
               <ScoreRing score={stats.avgScore} size={72} />
@@ -851,8 +882,8 @@ export function Dashboard() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 16,
+            gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+            gap: isMobile ? 12 : 16,
             marginBottom: 28,
           }}
         >
@@ -902,24 +933,13 @@ export function Dashboard() {
               key={i}
               style={{
                 borderRadius: 18,
-                padding: "20px 20px 16px",
+                padding: isMobile ? "16px" : "20px 20px 16px",
                 background: "rgba(255,255,255,0.025)",
                 border: "1px solid rgba(255,255,255,0.06)",
                 position: "relative",
                 overflow: "hidden",
                 transition: "transform 0.2s, border-color 0.2s",
                 cursor: "default",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.transform =
-                  "translateY(-3px)";
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  `${s.accent}40`;
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = "";
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  "rgba(255,255,255,0.06)";
               }}
             >
               <div
@@ -945,8 +965,8 @@ export function Dashboard() {
               >
                 <div
                   style={{
-                    width: 36,
-                    height: 36,
+                    width: isMobile ? 32 : 36,
+                    height: isMobile ? 32 : 36,
                     borderRadius: 10,
                     background: `${s.glow}`,
                     display: "flex",
@@ -954,7 +974,7 @@ export function Dashboard() {
                     justifyContent: "center",
                   }}
                 >
-                  <s.icon size={17} color={s.accent} />
+                  <s.icon size={isMobile ? 15 : 17} color={s.accent} />
                 </div>
                 <div
                   style={{
@@ -984,7 +1004,7 @@ export function Dashboard() {
                 <p
                   style={{
                     color: "#fff",
-                    fontSize: 28,
+                    fontSize: isMobile ? 22 : 28,
                     fontWeight: 700,
                     margin: "0 0 2px",
                     letterSpacing: "-0.5px",
@@ -1004,7 +1024,7 @@ export function Dashboard() {
                 <p
                   style={{
                     color: "#475569",
-                    fontSize: 12,
+                    fontSize: isMobile ? 11 : 12,
                     margin: 0,
                     fontWeight: 500,
                   }}
@@ -1020,7 +1040,7 @@ export function Dashboard() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 340px",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 340px",
             gap: 20,
             marginBottom: 24,
           }}
@@ -1028,7 +1048,7 @@ export function Dashboard() {
           <div
             style={{
               borderRadius: 20,
-              padding: "24px 24px 16px",
+              padding: isMobile ? "20px 16px 16px" : "24px 24px 16px",
               background: "rgba(255,255,255,0.025)",
               border: "1px solid rgba(255,255,255,0.06)",
             }}
@@ -1039,6 +1059,7 @@ export function Dashboard() {
                 alignItems: "flex-start",
                 justifyContent: "space-between",
                 marginBottom: 20,
+                gap: 12,
               }}
             >
               <div>
@@ -1080,7 +1101,7 @@ export function Dashboard() {
               </select>
             </div>
 
-            <div style={{ height: 220 }}>
+            <div style={{ height: isMobile ? 180 : 220 }}>
               {chartLoading ? (
                 <div
                   style={{
@@ -1100,7 +1121,12 @@ export function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={performanceData}
-                    margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                    margin={{
+                      top: 4,
+                      right: 4,
+                      left: isMobile ? -10 : -20,
+                      bottom: 0,
+                    }}
                   >
                     <defs>
                       <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1178,7 +1204,7 @@ export function Dashboard() {
           <div
             style={{
               borderRadius: 20,
-              padding: "24px 20px",
+              padding: isMobile ? "20px 16px" : "24px 20px",
               background: "rgba(255,255,255,0.025)",
               border: "1px solid rgba(255,255,255,0.06)",
               display: "flex",
@@ -1244,8 +1270,6 @@ export function Dashboard() {
               ) : recentInterviews.length > 0 ? (
                 recentInterviews.slice(0, 5).map((iv) => {
                   const sc = iv.score;
-                  const c =
-                    sc >= 80 ? "#10b981" : sc >= 60 ? "#a78bfa" : "#f59e0b";
                   return (
                     <button
                       key={iv.id}
@@ -1264,18 +1288,6 @@ export function Dashboard() {
                         textAlign: "left",
                         transition: "all 0.15s",
                         width: "100%",
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.background =
-                          "rgba(124,58,237,0.07)";
-                        (e.currentTarget as HTMLElement).style.borderColor =
-                          "rgba(124,58,237,0.25)";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.background =
-                          "rgba(255,255,255,0.02)";
-                        (e.currentTarget as HTMLElement).style.borderColor =
-                          "rgba(255,255,255,0.04)";
                       }}
                     >
                       <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
@@ -1347,10 +1359,12 @@ export function Dashboard() {
           <div
             style={{
               display: "flex",
-              alignItems: "center",
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : "center",
               justifyContent: "space-between",
-              padding: "20px 24px",
+              padding: isMobile ? "16px" : "20px 24px",
               borderBottom: "1px solid rgba(255,255,255,0.05)",
+              gap: 12,
             }}
           >
             <div>
@@ -1369,7 +1383,12 @@ export function Dashboard() {
                 {history.length} sessions recorded
               </p>
             </div>
-            <div style={{ position: "relative" }}>
+            <div
+              style={{
+                position: "relative",
+                width: isMobile ? "100%" : "auto",
+              }}
+            >
               <Search
                 size={14}
                 color="#334155"
@@ -1396,15 +1415,9 @@ export function Dashboard() {
                   color: "#e2e8f0",
                   fontSize: 13,
                   outline: "none",
-                  width: 200,
+                  width: isMobile ? "100%" : 200,
                   transition: "border-color 0.2s",
                 }}
-                onFocus={(e) =>
-                  (e.target.style.borderColor = "rgba(124,58,237,0.5)")
-                }
-                onBlur={(e) =>
-                  (e.target.style.borderColor = "rgba(255,255,255,0.08)")
-                }
               />
             </div>
           </div>
@@ -1424,32 +1437,8 @@ export function Dashboard() {
               />
             </div>
           ) : history.length > 0 ? (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
-                >
-                  {["Role", "Date", "Duration", "Score", "Rating", ""].map(
-                    (h, i) => (
-                      <th
-                        key={i}
-                        style={{
-                          padding: "10px 24px",
-                          textAlign: "left",
-                          color: "#334155",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
+            isMobile ? (
+              <div style={{ display: "flex", flexDirection: "column" }}>
                 {history.map((item) => {
                   const scoreColor =
                     item.score >= 80
@@ -1463,105 +1452,77 @@ export function Dashboard() {
                       : item.score >= 60
                         ? "rgba(124,58,237,0.1)"
                         : "rgba(245,158,11,0.1)";
-                  const isHovered = hoveredRow === item.id;
                   return (
-                    <tr
+                    <div
                       key={item.id}
-                      style={{
-                        borderBottom: "1px solid rgba(255,255,255,0.03)",
-                        background: isHovered
-                          ? "rgba(124,58,237,0.04)"
-                          : "transparent",
-                        transition: "background 0.15s",
-                        cursor: "pointer",
-                      }}
-                      onMouseEnter={() => setHoveredRow(item.id)}
-                      onMouseLeave={() => setHoveredRow(null)}
                       onClick={() =>
                         router.push(`/session/summary?sessionId=${item.id}`)
                       }
+                      style={{
+                        padding: 16,
+                        borderBottom: "1px solid rgba(255,255,255,0.04)",
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
                     >
-                      <td style={{ padding: "14px 24px" }}>
-                        <p
-                          style={{
-                            color: "#e2e8f0",
-                            fontWeight: 500,
-                            fontSize: 14,
-                            margin: "0 0 2px",
-                          }}
-                        >
-                          {item.role}
-                        </p>
-                        {item.type && (
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          marginBottom: 12,
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
                           <p
                             style={{
-                              color: "#334155",
+                              color: "#e2e8f0",
+                              fontWeight: 500,
+                              fontSize: 14,
+                              margin: "0 0 4px",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {item.role}
+                            {item.type && (
+                              <span
+                                style={{
+                                  color: "#475569",
+                                  fontWeight: 400,
+                                  fontSize: 11,
+                                  marginLeft: 6,
+                                  textTransform: "capitalize",
+                                }}
+                              >
+                                ({item.type})
+                              </span>
+                            )}
+                          </p>
+                          <p
+                            style={{
+                              color: "#475569",
                               fontSize: 11,
                               margin: 0,
-                              textTransform: "capitalize",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
                             }}
                           >
-                            {item.type}
+                            <Calendar size={10} /> {item.date} •{" "}
+                            {item.duration != null ? `${item.duration}m` : "—"}
                           </p>
-                        )}
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 24px",
-                          color: "#475569",
-                          fontSize: 12,
-                          fontFamily: "'DM Mono', monospace",
-                        }}
-                      >
-                        {item.date}
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 24px",
-                          color: "#475569",
-                          fontSize: 12,
-                        }}
-                      >
-                        {item.duration != null ? `${item.duration}m` : "—"}
-                      </td>
-                      <td style={{ padding: "14px 24px" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                          }}
-                        >
-                          <div style={{ display: "flex", gap: 2, width: 60 }}>
-                            {[...Array(10)].map((_, si) => (
-                              <div
-                                key={si}
-                                style={{
-                                  flex: 1,
-                                  height: 4,
-                                  borderRadius: 2,
-                                  background:
-                                    si < Math.round(item.score / 10)
-                                      ? scoreColor
-                                      : "rgba(255,255,255,0.07)",
-                                  transition: "background 0.3s",
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <span
-                            style={{
-                              color: "#fff",
-                              fontSize: 13,
-                              fontWeight: 700,
-                              fontFamily: "'DM Mono', monospace",
-                            }}
-                          >
-                            {item.score}%
-                          </span>
                         </div>
-                      </td>
-                      <td style={{ padding: "14px 24px" }}>
+                        <ScoreRing score={item.score} size={44} />
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
                         <span
                           style={{
                             display: "inline-block",
@@ -1572,12 +1533,11 @@ export function Dashboard() {
                             fontSize: 11,
                             fontWeight: 600,
                             border: `1px solid ${scoreColor}30`,
+                            textTransform: "capitalize",
                           }}
                         >
                           {item.status}
                         </span>
-                      </td>
-                      <td style={{ padding: "14px 24px", textAlign: "right" }}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1589,7 +1549,7 @@ export function Dashboard() {
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 6,
-                            padding: "7px 14px",
+                            padding: "6px 12px",
                             borderRadius: 10,
                             background: "rgba(124,58,237,0.12)",
                             border: "1px solid rgba(124,58,237,0.25)",
@@ -1597,25 +1557,215 @@ export function Dashboard() {
                             fontSize: 12,
                             fontWeight: 600,
                             cursor: "pointer",
-                            transition: "all 0.15s",
-                          }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLElement).style.background =
-                              "rgba(124,58,237,0.22)";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLElement).style.background =
-                              "rgba(124,58,237,0.12)";
                           }}
                         >
                           Review <ArrowUpRight size={12} />
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    minWidth: 600,
+                  }}
+                >
+                  <thead>
+                    <tr
+                      style={{
+                        borderBottom: "1px solid rgba(255,255,255,0.04)",
+                      }}
+                    >
+                      {["Role", "Date", "Duration", "Score", "Rating", ""].map(
+                        (h, i) => (
+                          <th
+                            key={i}
+                            style={{
+                              padding: "10px 24px",
+                              textAlign: "left",
+                              color: "#334155",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              letterSpacing: "0.06em",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {h}
+                          </th>
+                        ),
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((item) => {
+                      const scoreColor =
+                        item.score >= 80
+                          ? "#10b981"
+                          : item.score >= 60
+                            ? "#a78bfa"
+                            : "#f59e0b";
+                      const scoreBg =
+                        item.score >= 80
+                          ? "rgba(16,185,129,0.1)"
+                          : item.score >= 60
+                            ? "rgba(124,58,237,0.1)"
+                            : "rgba(245,158,11,0.1)";
+                      const isHovered = hoveredRow === item.id;
+                      return (
+                        <tr
+                          key={item.id}
+                          style={{
+                            borderBottom: "1px solid rgba(255,255,255,0.03)",
+                            background: isHovered
+                              ? "rgba(124,58,237,0.04)"
+                              : "transparent",
+                            transition: "background 0.15s",
+                            cursor: "pointer",
+                          }}
+                          onMouseEnter={() => setHoveredRow(item.id)}
+                          onMouseLeave={() => setHoveredRow(null)}
+                          onClick={() =>
+                            router.push(`/session/summary?sessionId=${item.id}`)
+                          }
+                        >
+                          <td style={{ padding: "14px 24px" }}>
+                            <p
+                              style={{
+                                color: "#e2e8f0",
+                                fontWeight: 500,
+                                fontSize: 14,
+                                margin: "0 0 2px",
+                              }}
+                            >
+                              {item.role}
+                            </p>
+                            {item.type && (
+                              <p
+                                style={{
+                                  color: "#334155",
+                                  fontSize: 11,
+                                  margin: 0,
+                                  textTransform: "capitalize",
+                                }}
+                              >
+                                {item.type}
+                              </p>
+                            )}
+                          </td>
+                          <td
+                            style={{
+                              padding: "14px 24px",
+                              color: "#475569",
+                              fontSize: 12,
+                              fontFamily: "'DM Mono', monospace",
+                            }}
+                          >
+                            {item.date}
+                          </td>
+                          <td
+                            style={{
+                              padding: "14px 24px",
+                              color: "#475569",
+                              fontSize: 12,
+                            }}
+                          >
+                            {item.duration != null ? `${item.duration}m` : "—"}
+                          </td>
+                          <td style={{ padding: "14px 24px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                              }}
+                            >
+                              <div
+                                style={{ display: "flex", gap: 2, width: 60 }}
+                              >
+                                {[...Array(10)].map((_, si) => (
+                                  <div
+                                    key={si}
+                                    style={{
+                                      flex: 1,
+                                      height: 4,
+                                      borderRadius: 2,
+                                      background:
+                                        si < Math.round(item.score / 10)
+                                          ? scoreColor
+                                          : "rgba(255,255,255,0.07)",
+                                      transition: "background 0.3s",
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                              <span
+                                style={{
+                                  color: "#fff",
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  fontFamily: "'DM Mono', monospace",
+                                }}
+                              >
+                                {item.score}%
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "14px 24px" }}>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                padding: "4px 10px",
+                                borderRadius: 8,
+                                background: scoreBg,
+                                color: scoreColor,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                border: `1px solid ${scoreColor}30`,
+                              }}
+                            >
+                              {item.status}
+                            </span>
+                          </td>
+                          <td
+                            style={{ padding: "14px 24px", textAlign: "right" }}
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(
+                                  `/session/summary?sessionId=${item.id}`,
+                                );
+                              }}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                padding: "7px 14px",
+                                borderRadius: 10,
+                                background: "rgba(124,58,237,0.12)",
+                                border: "1px solid rgba(124,58,237,0.25)",
+                                color: "#a78bfa",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                transition: "all 0.15s",
+                              }}
+                            >
+                              Review <ArrowUpRight size={12} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
           ) : (
             <div
               style={{
