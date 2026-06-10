@@ -652,7 +652,7 @@ export function Dashboard() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
-              onClick={() => router.push("/resume/upload")}
+              onClick={() => router.push("/dashboard/resume/upload")}
               style={{
                 display: "flex",
                 alignItems: "center",
