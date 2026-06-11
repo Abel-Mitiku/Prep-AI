@@ -152,7 +152,6 @@ function EntryWarningModal({ onAccept }: { onAccept: () => void }) {
     return () => clearTimeout(t);
   }, [countdown]);
 
-  // Unlock TTS on iOS Safari by triggering a silent utterance during a user gesture
   const handleAccept = () => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
@@ -545,7 +544,6 @@ export default function ActiveSessionPage() {
     utterance.onerror = () => setIsSpeaking(false);
     utteranceRef.current = utterance;
 
-    // Removed setTimeout to preserve gesture context on iOS
     synthesisRef.current.speak(utterance);
   }, [currentQIndex, ttsEnabled, status, currentQ?.text, hasAcceptedWarning]);
 
@@ -767,11 +765,25 @@ export default function ActiveSessionPage() {
   const toggleRecording = () => {
     if (isRecording) {
       setIsRecording(false);
-      setCurrentInput(`[Voice Recording - ${recordingDuration}s]`);
+      if (!currentInput.trim()) {
+        setCurrentInput(`[Voice Recording - ${recordingDuration}s]`);
+      }
       setRecordingDuration(0);
     } else {
       setIsRecording(true);
       setRecordingDuration(0);
+      setCurrentInput("");
+      // Start speech recognition for live transcription
+      if (speechRecognitionRef.current) {
+        listeningIntentRef.current = true;
+        try {
+          speechRecognitionRef.current.start();
+        } catch (err: any) {
+          if (!err.message?.includes("already started")) {
+            console.warn("Failed to start speech recognition:", err);
+          }
+        }
+      }
     }
   };
 
@@ -1324,104 +1336,74 @@ export default function ActiveSessionPage() {
           </div>
 
           <div className="p-4 md:p-5 flex flex-col">
-            {modeParam === "text" ? (
-              <div className="relative">
-                <textarea
-                  ref={textareaRef}
-                  value={currentInput}
-                  onChange={handleInputChange}
-                  placeholder="Type your answer here… Be specific, structured, and concise."
-                  className="w-full p-3 md:p-4 pr-12 md:pr-14 rounded-xl resize-none focus:outline-none text-slate-200 placeholder-slate-600 font-mono text-xs md:text-sm leading-relaxed"
-                  style={{
-                    background: "rgba(2,6,23,0.5)",
-                    border: "1px solid rgba(148,163,184,0.08)",
-                    minHeight: "160px",
-                  }}
-                  rows={6}
-                />
-                <button
-                  onClick={toggleSpeechInput}
-                  disabled={aiIsThinking}
-                  className={`absolute bottom-3 right-3 md:bottom-4 md:right-4 p-2 md:p-2.5 rounded-xl transition border ${
-                    isListening
-                      ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-400 shadow-lg"
-                      : "bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300 hover:border-slate-600"
-                  } disabled:opacity-40 disabled:cursor-not-allowed`}
-                  title={
-                    aiIsThinking
-                      ? "Please wait..."
-                      : isListening
-                        ? "Stop listening"
-                        : "Speak to type"
-                  }
-                >
-                  {isListening ? (
-                    <MicOff className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            ) : (
-              // COMPACT VOICE MODE - FIXED
-              <div className="relative min-h-[120px] md:min-h-[140px]">
-                {/* Status Display */}
-                <div className="flex items-center justify-center py-6 md:py-8">
-                  {isRecording ? (
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <span className="absolute inset-0 rounded-full bg-red-500/20 animate-ping" />
-                        <div className="w-3 h-3 bg-red-500 rounded-full relative" />
-                      </div>
-                      <span className="text-slate-300 text-sm font-medium">
-                        Recording... {formatTime(recordingDuration)}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-slate-500 text-sm">
-                      {currentInput ? "Response recorded" : "Ready to record"}
-                    </span>
-                  )}
-                </div>
+            {/* UNIFIED TEXTAREA FOR BOTH MODES */}
+            <div className="relative">
+              <textarea
+                ref={textareaRef}
+                value={currentInput}
+                onChange={handleInputChange}
+                placeholder={
+                  modeParam === "voice"
+                    ? "Tap the mic to start recording… Your speech will appear here."
+                    : "Type your answer here… Be specific, structured, and concise."
+                }
+                className="w-full p-3 md:p-4 pr-12 md:pr-14 rounded-xl resize-none focus:outline-none text-slate-200 placeholder-slate-600 font-mono text-xs md:text-sm leading-relaxed"
+                style={{
+                  background: "rgba(2,6,23,0.5)",
+                  border: "1px solid rgba(148,163,184,0.08)",
+                  minHeight: "160px",
+                }}
+                rows={6}
+              />
 
-                {/* Compact Record Button - Bottom Right */}
-                <button
-                  onClick={toggleRecording}
-                  disabled={aiIsThinking}
-                  className={`absolute bottom-3 right-3 md:bottom-4 md:right-4 p-3 md:p-3.5 rounded-full transition-all shadow-lg disabled:opacity-40 ${
-                    isRecording
+              {/* Mic Button - Bottom Right for BOTH modes */}
+              <button
+                onClick={
+                  modeParam === "voice" ? toggleRecording : toggleSpeechInput
+                }
+                disabled={aiIsThinking}
+                className={`absolute bottom-3 right-3 md:bottom-4 md:right-4 p-2.5 md:p-3 rounded-full transition-all shadow-lg disabled:opacity-40 ${
+                  (modeParam === "voice" && isRecording) ||
+                  (modeParam === "text" && isListening)
+                    ? modeParam === "voice"
                       ? "bg-red-500 hover:bg-red-600 shadow-red-500/30"
-                      : "bg-gradient-to-br from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-500/30"
-                  }`}
-                  title={isRecording ? "Stop recording" : "Start recording"}
-                >
-                  {isRecording ? (
+                      : "bg-cyan-500 hover:bg-cyan-600 shadow-cyan-500/30"
+                    : "bg-gradient-to-br from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-500/30"
+                }`}
+                title={
+                  modeParam === "voice"
+                    ? isRecording
+                      ? "Stop recording"
+                      : "Start recording"
+                    : isListening
+                      ? "Stop listening"
+                      : "Speak to type"
+                }
+              >
+                {modeParam === "voice" ? (
+                  isRecording ? (
                     <Square className="w-5 h-5 text-white" />
                   ) : (
                     <Mic className="w-5 h-5 text-white" />
-                  )}
-                </button>
-
-                {isRecording && (
-                  <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4">
-                    <button
-                      onClick={toggleRecording}
-                      className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium hover:bg-red-500/20 transition"
-                    >
-                      Stop
-                    </button>
-                  </div>
+                  )
+                ) : isListening ? (
+                  <MicOff className="w-5 h-5 text-white" />
+                ) : (
+                  <Mic className="w-5 h-5 text-white" />
                 )}
-              </div>
-            )}
+              </button>
+            </div>
 
-            {modeParam === "text" && (
+            {/* Voice Waveform - Shows when listening in either mode */}
+            {(modeParam === "text" || modeParam === "voice") && (
               <div
                 className={`mt-3 flex items-center gap-3 transition-opacity duration-300 ${isListening ? "opacity-100" : "opacity-0 pointer-events-none"}`}
               >
                 <VoiceWaveform active={isListening} />
                 <span className="text-[10px] md:text-xs text-cyan-500 font-medium">
-                  Speaking… click the mic or type to stop
+                  {modeParam === "voice"
+                    ? "Recording… tap mic to stop"
+                    : "Speaking… click the mic or type to stop"}
                 </span>
               </div>
             )}
