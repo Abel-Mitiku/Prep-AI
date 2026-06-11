@@ -381,12 +381,6 @@ export default function ActiveSessionPage() {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const listeningIntentRef = useRef(false);
 
-  // ── FIX: single source of truth for committed transcript text.
-  // `committedTextRef` holds everything that has been finalised by the speech
-  // engine across ALL start/stop cycles for this question. It is never reset
-  // between pause/resume cycles — only when the user submits or skips.
-  // `sessionBaseRef` seeds it with whatever the user typed manually before
-  // tapping the mic, so manual edits and voice edits coexist.
   const committedTextRef = useRef("");
   const sessionBaseRef = useRef("");
 
@@ -468,10 +462,6 @@ export default function ActiveSessionPage() {
     };
 
     recognition.onresult = (event: any) => {
-      // ── FIX: process only the NEW results from this event batch.
-      // We use event.resultIndex so we never re-read already-processed results.
-      // Finals are appended to committedTextRef; interim is tacked on for
-      // live preview only and never persisted to the ref.
       let newFinals = "";
       let interim = "";
 
@@ -490,7 +480,6 @@ export default function ActiveSessionPage() {
           : newFinals;
       }
 
-      // Display: committed text + live interim preview
       const display = interim
         ? committedTextRef.current
           ? committedTextRef.current + " " + interim.trim()
@@ -722,8 +711,6 @@ export default function ActiveSessionPage() {
     setStatus((prev) => (prev === "active" ? "paused" : "active"));
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    // Keep committedTextRef in sync when user edits manually so resuming
-    // voice doesn't overwrite their manual edits.
     committedTextRef.current = e.target.value;
     setCurrentInput(e.target.value);
   };
@@ -761,8 +748,6 @@ export default function ActiveSessionPage() {
         setIsListening(false);
       }
     } else {
-      // Seed committedTextRef from whatever is currently in the textarea
-      // so voice appends after any existing manual text.
       committedTextRef.current = currentInput;
       listeningIntentRef.current = true;
       setSpeechError(null);
@@ -780,7 +765,6 @@ export default function ActiveSessionPage() {
 
   const toggleRecording = () => {
     if (isRecording) {
-      // ── STOP ──────────────────────────────────────────────────────────────
       setIsRecording(false);
 
       listeningIntentRef.current = false;
@@ -788,25 +772,19 @@ export default function ActiveSessionPage() {
         speechRecognitionRef.current?.stop();
       } catch (e) {}
 
-      // If nothing was captured at all, show placeholder
       if (!committedTextRef.current.trim()) {
         const placeholder = `[Voice Recording - ${recordingDuration}s]`;
         committedTextRef.current = placeholder;
         setCurrentInput(placeholder);
       }
-      // Otherwise keep whatever is already in currentInput (committed text)
 
       setRecordingDuration(0);
     } else {
-      // ── START ─────────────────────────────────────────────────────────────
       setIsRecording(true);
       setRecordingDuration(0);
 
-      // ── FIX: seed committedTextRef from current textarea value so new
-      // speech appends AFTER anything already typed or previously recorded.
       committedTextRef.current = currentInput;
 
-      // Start recognition
       if (speechRecognitionRef.current) {
         listeningIntentRef.current = true;
         try {
@@ -906,7 +884,7 @@ export default function ActiveSessionPage() {
       else await handleEndSession(false);
     } finally {
       setAiIsThinking(false);
-      // Reset everything for the next question
+
       committedTextRef.current = "";
       setCurrentInput("");
       setIsRecording(false);
@@ -915,7 +893,6 @@ export default function ActiveSessionPage() {
   };
 
   const handleSkip = () => {
-    // Reset transcript state for the next question
     committedTextRef.current = "";
     setCurrentInput("");
     if (currentQIndex < totalQ - 1) setCurrentQIndex((prev) => prev + 1);
