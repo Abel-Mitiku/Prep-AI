@@ -383,7 +383,7 @@ export default function ActiveSessionPage() {
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const listeningIntentRef = useRef(false);
-  const committedRef = useRef("");
+  const finalTranscriptRef = useRef("");
 
   const currentQ: Question | undefined = questions[currentQIndex];
   const totalQ: number = questions.length;
@@ -460,31 +460,28 @@ export default function ActiveSessionPage() {
     speechRecognitionRef.current = recognition;
 
     recognition.onstart = () => {
-      committedRef.current = "";
       setIsListening(true);
       setSpeechError(null);
     };
 
     recognition.onresult = (event: any) => {
-      let newFinals = "";
-      let interim = "";
+      let interimTranscript = "";
+      let finalTranscript = finalTranscriptRef.current;
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) newFinals += t;
-        else interim += t;
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += (finalTranscript ? " " : "") + transcript;
+        } else {
+          interimTranscript += transcript;
+        }
       }
-      if (newFinals) {
-        committedRef.current = committedRef.current
-          ? committedRef.current.trimEnd() + " " + newFinals.trim()
-          : newFinals.trim();
-      }
-      setCurrentInput(
-        interim
-          ? committedRef.current
-            ? committedRef.current.trimEnd() + " " + interim
-            : interim
-          : committedRef.current,
-      );
+
+      finalTranscriptRef.current = finalTranscript;
+
+      const fullText =
+        finalTranscript + (interimTranscript ? " " + interimTranscript : "");
+      setCurrentInput(fullText.trim());
     };
 
     recognition.onerror = (event: any) => {
@@ -741,7 +738,6 @@ export default function ActiveSessionPage() {
 
     if (isListening) {
       listeningIntentRef.current = false;
-      committedRef.current = "";
       try {
         recognition.stop();
       } catch {
@@ -775,13 +771,12 @@ export default function ActiveSessionPage() {
         console.warn("Failed to stop speech recognition:", e);
       }
 
-      // Only set placeholder if no text was captured
-      if (!currentInput.trim() && !committedRef.current.trim()) {
+      // Keep the final transcript, don't overwrite with placeholder
+      // Only show placeholder if nothing was captured
+      if (!finalTranscriptRef.current.trim()) {
         setCurrentInput(`[Voice Recording - ${recordingDuration}s]`);
-      } else if (committedRef.current.trim()) {
-        // Use the committed text from speech recognition
-        setCurrentInput(committedRef.current);
       }
+      // Otherwise, keep the transcribed text that's already in currentInput
 
       setRecordingDuration(0);
     } else {
@@ -789,7 +784,7 @@ export default function ActiveSessionPage() {
       setIsRecording(true);
       setRecordingDuration(0);
       setCurrentInput("");
-      committedRef.current = "";
+      finalTranscriptRef.current = "";
 
       // Start speech recognition for live transcription
       if (speechRecognitionRef.current) {
@@ -892,7 +887,7 @@ export default function ActiveSessionPage() {
     } finally {
       setAiIsThinking(false);
       setCurrentInput("");
-      committedRef.current = "";
+      finalTranscriptRef.current = "";
       setIsRecording(false);
       setRecordingDuration(0);
     }
