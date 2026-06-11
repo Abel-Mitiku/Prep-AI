@@ -764,15 +764,33 @@ export default function ActiveSessionPage() {
 
   const toggleRecording = () => {
     if (isRecording) {
+      // Stop recording
       setIsRecording(false);
-      if (!currentInput.trim()) {
-        setCurrentInput(`[Voice Recording - ${recordingDuration}s]`);
+
+      // Stop speech recognition
+      listeningIntentRef.current = false;
+      try {
+        speechRecognitionRef.current?.stop();
+      } catch (e) {
+        console.warn("Failed to stop speech recognition:", e);
       }
+
+      // Only set placeholder if no text was captured
+      if (!currentInput.trim() && !committedRef.current.trim()) {
+        setCurrentInput(`[Voice Recording - ${recordingDuration}s]`);
+      } else if (committedRef.current.trim()) {
+        // Use the committed text from speech recognition
+        setCurrentInput(committedRef.current);
+      }
+
       setRecordingDuration(0);
     } else {
+      // Start recording
       setIsRecording(true);
       setRecordingDuration(0);
       setCurrentInput("");
+      committedRef.current = "";
+
       // Start speech recognition for live transcription
       if (speechRecognitionRef.current) {
         listeningIntentRef.current = true;
