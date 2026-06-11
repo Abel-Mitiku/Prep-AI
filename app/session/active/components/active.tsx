@@ -152,6 +152,18 @@ function EntryWarningModal({ onAccept }: { onAccept: () => void }) {
     return () => clearTimeout(t);
   }, [countdown]);
 
+  // Unlock TTS on iOS Safari by triggering a silent utterance during a user gesture
+  const handleAccept = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0;
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    }
+    onAccept();
+  };
+
   return (
     <div className="fixed inset-0 z-[100] bg-slate-950 flex items-center justify-center p-4">
       <div
@@ -212,7 +224,7 @@ function EntryWarningModal({ onAccept }: { onAccept: () => void }) {
         </div>
 
         <button
-          onClick={onAccept}
+          onClick={handleAccept}
           disabled={countdown > 0}
           className="w-full py-4 rounded-xl font-semibold text-white transition-all duration-300 disabled:cursor-not-allowed relative overflow-hidden"
           style={{
@@ -532,7 +544,9 @@ export default function ActiveSessionPage() {
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     utteranceRef.current = utterance;
-    setTimeout(() => synthesisRef.current?.speak(utterance), 300);
+
+    // Removed setTimeout to preserve gesture context on iOS
+    synthesisRef.current.speak(utterance);
   }, [currentQIndex, ttsEnabled, status, currentQ?.text, hasAcceptedWarning]);
 
   useEffect(() => {
@@ -722,7 +736,8 @@ export default function ActiveSessionPage() {
   const toggleSpeechInput = () => {
     const recognition = speechRecognitionRef.current;
     if (!recognition) {
-      setSpeechError("Speech recognition not supported");
+      setSpeechError("Voice typing not supported on this browser.");
+      setTimeout(() => setSpeechError(null), 4000);
       return;
     }
 
@@ -918,7 +933,7 @@ export default function ActiveSessionPage() {
 
   if (status === "loading" || isFetchingQuestions) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-slate-950">
         <div
           className="absolute inset-0 opacity-5"
           style={{
@@ -946,7 +961,7 @@ export default function ActiveSessionPage() {
 
   if (apiError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-slate-950 p-4">
         <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-2xl max-w-md w-full text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">
@@ -974,7 +989,7 @@ export default function ActiveSessionPage() {
 
   if (totalQ === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-slate-950 p-4">
         <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-2xl max-w-md w-full text-center">
           <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">
@@ -999,7 +1014,7 @@ export default function ActiveSessionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-slate-950 flex flex-col relative overflow-hidden">
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -1255,7 +1270,7 @@ export default function ActiveSessionPage() {
         </div>
 
         <div
-          className="rounded-2xl border flex-1 flex flex-col overflow-hidden"
+          className="rounded-2xl border flex flex-col overflow-hidden"
           style={{
             background: "rgba(15,23,42,0.8)",
             borderColor: isListening
@@ -1308,44 +1323,48 @@ export default function ActiveSessionPage() {
             </div>
           </div>
 
-          <div className="p-4 md:p-5 flex-1 flex flex-col">
+          <div className="p-4 md:p-5 flex flex-col">
             {modeParam === "text" ? (
-              <div className="relative flex-1">
+              <div className="relative">
                 <textarea
                   ref={textareaRef}
                   value={currentInput}
                   onChange={handleInputChange}
                   placeholder="Type your answer here… Be specific, structured, and concise."
-                  className="flex-1 w-full h-full p-3 md:p-4 pr-12 md:pr-14 rounded-xl resize-none focus:outline-none text-slate-200 placeholder-slate-600 font-mono text-xs md:text-sm leading-relaxed"
+                  className="w-full p-3 md:p-4 pr-12 md:pr-14 rounded-xl resize-none focus:outline-none text-slate-200 placeholder-slate-600 font-mono text-xs md:text-sm leading-relaxed"
                   style={{
                     background: "rgba(2,6,23,0.5)",
                     border: "1px solid rgba(148,163,184,0.08)",
-                    minHeight: "120px",
+                    minHeight: "160px",
                   }}
                   rows={6}
                 />
-                {speechRecognitionRef.current && (
-                  <button
-                    onClick={toggleSpeechInput}
-                    disabled={aiIsThinking}
-                    className={`absolute bottom-3 right-3 md:bottom-4 md:right-4 p-2 md:p-2.5 rounded-xl transition border ${
-                      isListening
-                        ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-400 shadow-lg"
-                        : "bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300 hover:border-slate-600"
-                    } disabled:opacity-40 disabled:cursor-not-allowed`}
-                    title={isListening ? "Stop listening" : "Speak to type"}
-                  >
-                    {isListening ? (
-                      <MicOff className="w-4 h-4" />
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                  </button>
-                )}
+                <button
+                  onClick={toggleSpeechInput}
+                  disabled={aiIsThinking}
+                  className={`absolute bottom-3 right-3 md:bottom-4 md:right-4 p-2 md:p-2.5 rounded-xl transition border ${
+                    isListening
+                      ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-400 shadow-lg"
+                      : "bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300 hover:border-slate-600"
+                  } disabled:opacity-40 disabled:cursor-not-allowed`}
+                  title={
+                    aiIsThinking
+                      ? "Please wait..."
+                      : isListening
+                        ? "Stop listening"
+                        : "Speak to type"
+                  }
+                >
+                  {isListening ? (
+                    <MicOff className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </button>
               </div>
             ) : (
               <div
-                className="flex-1 flex flex-col items-center justify-center rounded-xl min-h-[140px] md:min-h-[180px] border-2 border-dashed transition-all duration-300"
+                className="flex flex-col items-center justify-center rounded-xl min-h-[180px] border-2 border-dashed transition-all duration-300"
                 style={{
                   borderColor: isRecording
                     ? "rgba(6,182,212,0.4)"
@@ -1402,7 +1421,7 @@ export default function ActiveSessionPage() {
               </div>
             )}
 
-            {modeParam === "text" && speechRecognitionRef.current && (
+            {modeParam === "text" && (
               <div
                 className={`mt-3 flex items-center gap-3 transition-opacity duration-300 ${isListening ? "opacity-100" : "opacity-0 pointer-events-none"}`}
               >
