@@ -1363,58 +1363,52 @@ export default function ActiveSessionPage() {
                 </button>
               </div>
             ) : (
-              <div
-                className="flex flex-col items-center justify-center rounded-xl min-h-[180px] border-2 border-dashed transition-all duration-300"
-                style={{
-                  borderColor: isRecording
-                    ? "rgba(6,182,212,0.4)"
-                    : "rgba(148,163,184,0.1)",
-                  background: isRecording
-                    ? "rgba(6,182,212,0.03)"
-                    : "rgba(2,6,23,0.3)",
-                }}
-              >
-                {isRecording ? (
-                  <div className="text-center space-y-5">
-                    <ListeningOrb active={true} />
-                    <p className="text-slate-300 font-medium">
-                      Recording your response…
-                    </p>
-                    <button
-                      onClick={toggleRecording}
-                      className="px-4 py-2 md:px-5 md:py-2.5 rounded-xl text-xs md:text-sm font-medium flex items-center gap-2 mx-auto transition"
-                      style={{
-                        background: "rgba(239,68,68,0.15)",
-                        border: "1px solid rgba(239,68,68,0.3)",
-                        color: "#f87171",
-                      }}
-                    >
-                      <Square className="w-3.5 h-3.5" /> Stop Recording
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-center space-y-4">
-                    <div
-                      className="w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mx-auto"
-                      style={{
-                        background: "rgba(124,58,237,0.1)",
-                        border: "1px solid rgba(124,58,237,0.2)",
-                      }}
-                    >
-                      <Mic className="w-6 h-6 md:w-7 md:h-7 text-violet-400" />
+              // COMPACT VOICE MODE - FIXED
+              <div className="relative min-h-[120px] md:min-h-[140px]">
+                {/* Status Display */}
+                <div className="flex items-center justify-center py-6 md:py-8">
+                  {isRecording ? (
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <span className="absolute inset-0 rounded-full bg-red-500/20 animate-ping" />
+                        <div className="w-3 h-3 bg-red-500 rounded-full relative" />
+                      </div>
+                      <span className="text-slate-300 text-sm font-medium">
+                        Recording... {formatTime(recordingDuration)}
+                      </span>
                     </div>
-                    <p className="text-slate-400 text-xs md:text-sm">
-                      Tap to record your voice response
-                    </p>
+                  ) : (
+                    <span className="text-slate-500 text-sm">
+                      {currentInput ? "Response recorded" : "Ready to record"}
+                    </span>
+                  )}
+                </div>
+
+                {/* Compact Record Button - Bottom Right */}
+                <button
+                  onClick={toggleRecording}
+                  disabled={aiIsThinking}
+                  className={`absolute bottom-3 right-3 md:bottom-4 md:right-4 p-3 md:p-3.5 rounded-full transition-all shadow-lg disabled:opacity-40 ${
+                    isRecording
+                      ? "bg-red-500 hover:bg-red-600 shadow-red-500/30"
+                      : "bg-gradient-to-br from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-500/30"
+                  }`}
+                  title={isRecording ? "Stop recording" : "Start recording"}
+                >
+                  {isRecording ? (
+                    <Square className="w-5 h-5 text-white" />
+                  ) : (
+                    <Mic className="w-5 h-5 text-white" />
+                  )}
+                </button>
+
+                {isRecording && (
+                  <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4">
                     <button
                       onClick={toggleRecording}
-                      className="px-4 py-2 md:px-5 md:py-2.5 rounded-xl text-xs md:text-sm font-semibold text-white transition"
-                      style={{
-                        background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                        boxShadow: "0 0 20px rgba(124,58,237,0.3)",
-                      }}
+                      className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium hover:bg-red-500/20 transition"
                     >
-                      Start Recording
+                      Stop
                     </button>
                   </div>
                 )}
