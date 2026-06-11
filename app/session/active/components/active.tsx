@@ -206,10 +206,7 @@ function EntryWarningModal({ onAccept }: { onAccept: () => void }) {
               icon: "⚠️",
               text: "Suspicious behavior will be flagged on your report",
             },
-            {
-              icon: "🔒",
-              text: "Your session is recorded and reviewed by AI",
-            },
+            { icon: "🔒", text: "Your session is recorded and reviewed by AI" },
           ].map((item, i) => (
             <div
               key={i}
@@ -383,7 +380,15 @@ export default function ActiveSessionPage() {
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const listeningIntentRef = useRef(false);
-  const finalTranscriptRef = useRef("");
+
+  // ── FIX: single source of truth for committed transcript text.
+  // `committedTextRef` holds everything that has been finalised by the speech
+  // engine across ALL start/stop cycles for this question. It is never reset
+  // between pause/resume cycles — only when the user submits or skips.
+  // `sessionBaseRef` seeds it with whatever the user typed manually before
+  // tapping the mic, so manual edits and voice edits coexist.
+  const committedTextRef = useRef("");
+  const sessionBaseRef = useRef("");
 
   const currentQ: Question | undefined = questions[currentQIndex];
   const totalQ: number = questions.length;
@@ -427,9 +432,7 @@ export default function ActiveSessionPage() {
       });
     };
 
-    const handleEnd = () => {
-      setIsDragging(false);
-    };
+    const handleEnd = () => setIsDragging(false);
 
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleEnd);
@@ -465,23 +468,36 @@ export default function ActiveSessionPage() {
     };
 
     recognition.onresult = (event: any) => {
-      let interimTranscript = "";
-      let finalTranscript = finalTranscriptRef.current;
+      // ── FIX: process only the NEW results from this event batch.
+      // We use event.resultIndex so we never re-read already-processed results.
+      // Finals are appended to committedTextRef; interim is tacked on for
+      // live preview only and never persisted to the ref.
+      let newFinals = "";
+      let interim = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
+        const t = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += (finalTranscript ? " " : "") + transcript;
+          newFinals += (newFinals ? " " : "") + t.trim();
         } else {
-          interimTranscript += transcript;
+          interim += t;
         }
       }
 
-      finalTranscriptRef.current = finalTranscript;
+      if (newFinals) {
+        committedTextRef.current = committedTextRef.current
+          ? committedTextRef.current + " " + newFinals
+          : newFinals;
+      }
 
-      const fullText =
-        finalTranscript + (interimTranscript ? " " + interimTranscript : "");
-      setCurrentInput(fullText.trim());
+      // Display: committed text + live interim preview
+      const display = interim
+        ? committedTextRef.current
+          ? committedTextRef.current + " " + interim.trim()
+          : interim.trim()
+        : committedTextRef.current;
+
+      setCurrentInput(display);
     };
 
     recognition.onerror = (event: any) => {
@@ -540,7 +556,6 @@ export default function ActiveSessionPage() {
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     utteranceRef.current = utterance;
-
     synthesisRef.current.speak(utterance);
   }, [currentQIndex, ttsEnabled, status, currentQ?.text, hasAcceptedWarning]);
 
@@ -655,9 +670,7 @@ export default function ActiveSessionPage() {
 
     return () => {
       mounted = false;
-      if (currentStream) {
-        currentStream.getTracks().forEach((t) => t.stop());
-      }
+      if (currentStream) currentStream.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
   }, [showWebcam]);
@@ -708,8 +721,12 @@ export default function ActiveSessionPage() {
   const handlePauseResume = () =>
     setStatus((prev) => (prev === "active" ? "paused" : "active"));
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) =>
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // Keep committedTextRef in sync when user edits manually so resuming
+    // voice doesn't overwrite their manual edits.
+    committedTextRef.current = e.target.value;
     setCurrentInput(e.target.value);
+  };
 
   const toggleTTS = () => {
     if (!synthesisRef.current || !currentQ?.text) return;
@@ -744,6 +761,9 @@ export default function ActiveSessionPage() {
         setIsListening(false);
       }
     } else {
+      // Seed committedTextRef from whatever is currently in the textarea
+      // so voice appends after any existing manual text.
+      committedTextRef.current = currentInput;
       listeningIntentRef.current = true;
       setSpeechError(null);
       try {
@@ -760,33 +780,33 @@ export default function ActiveSessionPage() {
 
   const toggleRecording = () => {
     if (isRecording) {
-      // Stop recording
+      // ── STOP ──────────────────────────────────────────────────────────────
       setIsRecording(false);
 
-      // Stop speech recognition
       listeningIntentRef.current = false;
       try {
         speechRecognitionRef.current?.stop();
-      } catch (e) {
-        console.warn("Failed to stop speech recognition:", e);
-      }
+      } catch (e) {}
 
-      // Keep the final transcript, don't overwrite with placeholder
-      // Only show placeholder if nothing was captured
-      if (!finalTranscriptRef.current.trim()) {
-        setCurrentInput(`[Voice Recording - ${recordingDuration}s]`);
+      // If nothing was captured at all, show placeholder
+      if (!committedTextRef.current.trim()) {
+        const placeholder = `[Voice Recording - ${recordingDuration}s]`;
+        committedTextRef.current = placeholder;
+        setCurrentInput(placeholder);
       }
-      // Otherwise, keep the transcribed text that's already in currentInput
+      // Otherwise keep whatever is already in currentInput (committed text)
 
       setRecordingDuration(0);
     } else {
-      // Start recording
+      // ── START ─────────────────────────────────────────────────────────────
       setIsRecording(true);
       setRecordingDuration(0);
-      setCurrentInput("");
-      finalTranscriptRef.current = "";
 
-      // Start speech recognition for live transcription
+      // ── FIX: seed committedTextRef from current textarea value so new
+      // speech appends AFTER anything already typed or previously recorded.
+      committedTextRef.current = currentInput;
+
+      // Start recognition
       if (speechRecognitionRef.current) {
         listeningIntentRef.current = true;
         try {
@@ -886,14 +906,18 @@ export default function ActiveSessionPage() {
       else await handleEndSession(false);
     } finally {
       setAiIsThinking(false);
+      // Reset everything for the next question
+      committedTextRef.current = "";
       setCurrentInput("");
-      finalTranscriptRef.current = "";
       setIsRecording(false);
       setRecordingDuration(0);
     }
   };
 
   const handleSkip = () => {
+    // Reset transcript state for the next question
+    committedTextRef.current = "";
+    setCurrentInput("");
     if (currentQIndex < totalQ - 1) setCurrentQIndex((prev) => prev + 1);
   };
 
@@ -1349,7 +1373,6 @@ export default function ActiveSessionPage() {
           </div>
 
           <div className="p-4 md:p-5 flex flex-col">
-            {/* UNIFIED TEXTAREA FOR BOTH MODES */}
             <div className="relative">
               <textarea
                 ref={textareaRef}
@@ -1369,7 +1392,6 @@ export default function ActiveSessionPage() {
                 rows={6}
               />
 
-              {/* Mic Button - Bottom Right for BOTH modes */}
               <button
                 onClick={
                   modeParam === "voice" ? toggleRecording : toggleSpeechInput
@@ -1407,7 +1429,6 @@ export default function ActiveSessionPage() {
               </button>
             </div>
 
-            {/* Voice Waveform - Shows when listening in either mode */}
             {(modeParam === "text" || modeParam === "voice") && (
               <div
                 className={`mt-3 flex items-center gap-3 transition-opacity duration-300 ${isListening ? "opacity-100" : "opacity-0 pointer-events-none"}`}
@@ -1431,7 +1452,7 @@ export default function ActiveSessionPage() {
               disabled={aiIsThinking}
               className="px-3 py-2 md:px-4 md:py-2 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded-xl transition flex items-center gap-1.5 md:gap-2 text-xs md:text-sm font-medium disabled:opacity-40"
             >
-              <SkipForward className="w-3.5 h-3.5 md:w-4 md:h-4" />{" "}
+              <SkipForward className="w-3.5 h-3.5 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Skip</span>
             </button>
 
