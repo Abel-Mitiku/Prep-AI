@@ -3,16 +3,19 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabaseClient";
-import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
+import { ShieldCheck, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
 
 function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<"loading" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "error" | "success">(
+    "loading",
+  );
   const [message, setMessage] = useState("Verifying secure link...");
 
   useEffect(() => {
     const code = searchParams.get("code");
+    const type = searchParams.get("type");
 
     if (code) {
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
@@ -21,7 +24,20 @@ function CallbackContent() {
           setMessage("This link has expired or is invalid.");
           setTimeout(() => router.push("/auth/forgot-password"), 3000);
         } else {
-          router.push("/auth/reset-password");
+          setStatus("success");
+          setMessage("Verification successful! Redirecting...");
+
+          // ✅ FIX: Redirect based on the type of email link clicked
+          if (type === "recovery") {
+            setTimeout(() => router.push("/auth/reset-password"), 1500);
+          } else if (type === "signup") {
+            setTimeout(() => router.push("/dashboard"), 1500); // Redirect to dashboard after registration
+          } else if (type === "email_change") {
+            setTimeout(() => router.push("/dashboard/settings"), 1500);
+          } else {
+            // Default fallback for any other successful auth flow
+            setTimeout(() => router.push("/dashboard"), 1500);
+          }
         }
       });
     } else {
@@ -72,7 +88,13 @@ function CallbackContent() {
           padding: "52px 44px",
           borderRadius: 28,
           background: "rgba(15,23,42,0.9)",
-          border: `1px solid ${status === "error" ? "rgba(239,68,68,0.2)" : "rgba(124,58,237,0.2)"}`,
+          border: `1px solid ${
+            status === "error"
+              ? "rgba(239,68,68,0.2)"
+              : status === "success"
+                ? "rgba(34,197,94,0.2)"
+                : "rgba(124,58,237,0.2)"
+          }`,
           backdropFilter: "blur(20px)",
           maxWidth: 380,
           width: "100%",
@@ -129,6 +151,45 @@ function CallbackContent() {
               />
               {message}
             </div>
+          </>
+        ) : status === "success" ? (
+          <>
+            <div
+              style={{
+                position: "relative",
+                width: 72,
+                height: 72,
+                margin: "0 auto 24px",
+              }}
+            >
+              <div
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: "50%",
+                  background: "rgba(34,197,94,0.15)",
+                  border: "1px solid rgba(34,197,94,0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CheckCircle size={30} color="#4ade80" />
+              </div>
+            </div>
+            <p
+              style={{
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 20,
+                margin: "0 0 8px",
+              }}
+            >
+              Success!
+            </p>
+            <p style={{ color: "#475569", fontSize: 14, margin: 0 }}>
+              {message}
+            </p>
           </>
         ) : (
           <>
