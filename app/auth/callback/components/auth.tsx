@@ -15,34 +15,57 @@ function CallbackContent() {
 
   useEffect(() => {
     const code = searchParams.get("code");
-    const type = searchParams.get("type");
+    const queryType = searchParams.get("type");
+
+    const hash = window.location.hash;
+    const hashParams = new URLSearchParams(
+      hash.startsWith("#") ? hash.slice(1) : hash,
+    );
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    const hashType = hashParams.get("type");
+
+    const type = queryType || hashType;
+
+    const handleSuccess = () => {
+      setStatus("success");
+      setMessage("Verification successful! Redirecting...");
+
+      if (type === "recovery") {
+        setTimeout(() => router.push("/auth/reset-password"), 1500);
+      } else if (type === "signup") {
+        setTimeout(() => router.push("/dashboard"), 1500);
+      } else if (type === "email_change") {
+        setTimeout(() => router.push("/dashboard/settings"), 1500);
+      } else {
+        setTimeout(() => router.push("/dashboard"), 1500);
+      }
+    };
+
+    const handleError = () => {
+      setStatus("error");
+      setMessage("This link has expired or is invalid.");
+      setTimeout(() => router.push("/auth/forgot-password"), 3000);
+    };
 
     if (code) {
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (error) {
-          setStatus("error");
-          setMessage("This link has expired or is invalid.");
-          setTimeout(() => router.push("/auth/forgot-password"), 3000);
-        } else {
-          setStatus("success");
-          setMessage("Verification successful! Redirecting...");
-
-          // ✅ FIX: Redirect based on the type of email link clicked
-          if (type === "recovery") {
-            setTimeout(() => router.push("/auth/reset-password"), 1500);
-          } else if (type === "signup") {
-            setTimeout(() => router.push("/dashboard"), 1500); // Redirect to dashboard after registration
-          } else if (type === "email_change") {
-            setTimeout(() => router.push("/dashboard/settings"), 1500);
-          } else {
-            // Default fallback for any other successful auth flow
-            setTimeout(() => router.push("/dashboard"), 1500);
-          }
-        }
+        if (error) handleError();
+        else handleSuccess();
       });
+    } else if (accessToken && refreshToken) {
+      supabase.auth
+        .setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        .then(({ error }) => {
+          if (error) handleError();
+          else handleSuccess();
+        });
     } else {
       setStatus("error");
-      setMessage("No verification code found.");
+      setMessage("No verification code or token found.");
       setTimeout(() => router.push("/auth/forgot-password"), 3000);
     }
   }, [searchParams, router]);
