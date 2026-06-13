@@ -63,6 +63,19 @@ Let’s face it: interviewing is stressful. You can have all the right technical
 
 ---
 
+## 📸 App Screenshots
+
+<div align="center">
+  <img width="1829" height="939" alt="image" src="https://github.com/user-attachments/assets/8dbebac2-2b53-47cf-9d0e-3d66b87d0d9b" />
+
+ <img width="1830" height="936" alt="image" src="https://github.com/user-attachments/assets/a36e1813-cace-4112-8037-19d2e7ab530a" />
+
+</div>
+<div align="center">
+ <img width="1833" height="937" alt="image" src="https://github.com/user-attachments/assets/4c58c72a-4dcf-4c93-9001-0d21d6376129" />
+
+</div>
+
 ## 🛠 The Tech Stack
 
 | Category | Technologies |
